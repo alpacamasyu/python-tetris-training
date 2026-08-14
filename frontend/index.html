@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>落ちものパズルゲーム</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- S-01 ログイン画面 -->
+  <section id="screen-login" class="screen active">
+    <div class="panel">
+      <h1>落ちものパズルゲーム</h1>
+      <label for="nickname-input">ニックネーム（1〜20文字）</label>
+      <input type="text" id="nickname-input" maxlength="20" autocomplete="off" placeholder="たろう">
+      <button id="login-button">はじめる</button>
+      <p class="error-message" id="login-error"></p>
+    </div>
+  </section>
+
+  <!-- S-02 メニュー画面 -->
+  <section id="screen-menu" class="screen">
+    <div class="panel">
+      <h2>メニュー</h2>
+      <p>ようこそ、<span id="menu-nickname"></span> さん</p>
+      <fieldset id="difficulty-fieldset">
+        <legend>難易度を選択</legend>
+        <div id="difficulty-list"></div>
+      </fieldset>
+      <button id="start-game-button">ゲームスタート</button>
+      <button id="show-ranking-button">ランキング</button>
+      <button id="show-history-button">履歴</button>
+      <p class="error-message" id="menu-error"></p>
+    </div>
+  </section>
+
+  <!-- S-03 ゲームプレイ画面 -->
+  <section id="screen-game" class="screen">
+    <div class="game-layout">
+      <div class="board-area">
+        <canvas id="board-canvas" width="280" height="560"></canvas>
+      </div>
+      <div class="side-panel">
+        <div class="info-box">
+          <div>難易度: <span id="game-difficulty"></span></div>
+          <div>スコア: <span id="game-score">0</span></div>
+          <div>レベル: <span id="game-level">1</span></div>
+          <div>ライン: <span id="game-lines">0</span></div>
+        </div>
+        <div class="next-box">
+          <h3>NEXT</h3>
+          <canvas id="next-canvas" width="96" height="300"></canvas>
+        </div>
+        <div class="controls-help">
+          <p>← →：移動 / ↑：回転</p>
+          <p>↓：ソフトドロップ / Space：ハードドロップ</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S-04 リザルト画面 -->
+  <section id="screen-result" class="screen">
+    <div class="panel">
+      <h2>ゲームオーバー</h2>
+      <p>スコア: <span id="result-score"></span></p>
+      <p>到達レベル: <span id="result-level"></span></p>
+      <p>消去ライン数: <span id="result-lines"></span></p>
+      <button id="register-score-button">スコアを登録してメニューに戻る</button>
+      <p class="error-message" id="result-error"></p>
+    </div>
+  </section>
+
+  <!-- S-05 ランキング画面 -->
+  <section id="screen-ranking" class="screen">
+    <div class="panel">
+      <h2>ランキング TOP10</h2>
+      <table id="ranking-table">
+        <thead>
+          <tr><th>順位</th><th>ニックネーム</th><th>スコア</th><th>難易度</th><th>プレイ日時</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button id="ranking-back-button">メニューに戻る</button>
+    </div>
+  </section>
+
+  <!-- S-06 履歴画面 -->
+  <section id="screen-history" class="screen">
+    <div class="panel">
+      <h2>プレイ履歴</h2>
+      <table id="history-table">
+        <thead>
+          <tr><th>スコア</th><th>到達レベル</th><th>消去ライン数</th><th>難易度</th><th>プレイ日時</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button id="history-back-button">メニューに戻る</button>
+    </div>
+  </section>
+
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/game.js"></script>
+<script src="js/screens.js"></script>
+</body>
+</html>
