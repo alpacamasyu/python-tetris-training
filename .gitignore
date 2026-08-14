@@ -11,6 +11,10 @@ venv/
 .coverage
 htmlcov/
 
+# Database
+*.db
+*.sqlite3
+
 # OS
 .DS_Store
 Thumbs.db
