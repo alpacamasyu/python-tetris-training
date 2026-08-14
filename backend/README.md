@@ -46,3 +46,20 @@ pytest
 | A-05 | POST | /api/scores | スコア登録 |
 | A-06 | GET | /api/rankings | ランキング取得 |
 | A-07 | GET | /api/users/{user_id}/history | プレイ履歴取得 |
+
+## 研修生向けの案内
+
+このブランチでは `app/crud.py` と `app/routers/` 配下の各関数の中身が
+`# TODO: ここに実装する` / `raise NotImplementedError()` の状態になっています。
+`app/models.py`・`app/schemas.py`・`app/database.py` はそのまま使えるので変更不要です。
+
+以下の流れで実装を進めてください。
+
+1. `docs/01_要件定義書.md`・`docs/02_基本設計書.md`・`docs/03_詳細設計書.md` を読み、
+   システム全体の要件・API仕様・DB設計を理解する
+2. 各ファイルの `# TODO: ここに実装する` コメント箇所を、各関数のdocstringに書かれた
+   説明と詳細設計書の該当セクション（A-01〜A-07、2章）に従って実装する
+3. `app/crud.py` から着手すると進めやすい（DB操作の土台になるため）
+4. 実装が終わったら `pytest` を実行し、`tests/` 配下のテストがすべてパスすることを確認する
+5. `uvicorn app.main:app --reload` でアプリを起動し、`/docs`（Swagger UI）で
+   各APIが仕様通りに動作することを確認する

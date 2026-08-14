@@ -15,5 +15,8 @@ router = APIRouter(tags=["difficulty"])
     response_model=List[schemas.DifficultySettingResponse],
 )
 def get_difficulty_settings(db: Session = Depends(get_db)):
-    """難易度（easy/normal/hard）ごとの初期落下速度・得点倍率の一覧を返す。"""
-    return crud.get_difficulty_settings(db)
+    """難易度（easy/normal/hard）ごとの初期落下速度・得点倍率の一覧を返す。
+    詳細設計書 A-04 難易度設定の取得に対応。
+    """
+    # TODO: ここに実装する
+    raise NotImplementedError()

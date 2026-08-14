@@ -16,24 +16,11 @@ router = APIRouter(tags=["scores"])
     status_code=status.HTTP_201_CREATED,
 )
 def register_score(score_in: schemas.ScoreCreate, db: Session = Depends(get_db)):
-    """ゲーム終了時のスコアを登録する。対象ユーザーが存在しない場合は404。"""
-    user = crud.get_user(db, score_in.user_id)
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="該当するユーザーが存在しません",
-        )
-    score = crud.create_score(db, score_in)
-    return schemas.ScoreResponse(
-        score_id=score.id,
-        user_id=score.user_id,
-        nickname=user.nickname,
-        score=score.score,
-        level_reached=score.level_reached,
-        lines_cleared=score.lines_cleared,
-        difficulty=score.difficulty,
-        played_at=score.played_at,
-    )
+    """ゲーム終了時のスコアを登録する。
+    詳細設計書 A-05: 対象ユーザーが存在しない場合は404を返すこと。
+    """
+    # TODO: ここに実装する
+    raise NotImplementedError()
 
 
 @router.get("/api/rankings", response_model=List[schemas.RankingItem])
@@ -42,17 +29,8 @@ def get_rankings(
     difficulty: Optional[str] = Query(default=None, description="難易度による絞り込み（省略可）"),
     db: Session = Depends(get_db),
 ):
-    """上位スコアをスコア降順（同点時はplayed_atが早い方を上位）で取得する。"""
-    limit = min(limit, 100)
-    rows = crud.get_rankings(db, limit, difficulty)
-    return [
-        schemas.RankingItem(
-            rank=index + 1,
-            nickname=user.nickname,
-            score=score.score,
-            level_reached=score.level_reached,
-            difficulty=score.difficulty,
-            played_at=score.played_at,
-        )
-        for index, (score, user) in enumerate(rows)
-    ]
+    """上位スコアをスコア降順（同点時はplayed_atが早い方を上位）で取得する。
+    詳細設計書 A-06: limitは最大100件までに丸めること。
+    """
+    # TODO: ここに実装する
+    raise NotImplementedError()

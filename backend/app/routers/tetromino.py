@@ -11,13 +11,12 @@ TETROMINO_TYPES = ["I", "O", "T", "S", "Z", "J", "L"]
 
 
 def _generate_sequence(bags: int) -> list[str]:
-    """7種類のテトリミノをセットごとにシャッフルし、bags個ぶん連結して返す。"""
-    sequence: list[str] = []
-    for _ in range(bags):
-        bag = TETROMINO_TYPES.copy()
-        random.shuffle(bag)
-        sequence.extend(bag)
-    return sequence
+    """7種類のテトリミノをセットごとにシャッフルし、bags個ぶん連結して返す。
+    詳細設計書 A-03: 各セット内で7種類（I, O, T, S, Z, J, L）をランダムな順に
+    1回ずつ含む（7-bagアルゴリズム）こと。
+    """
+    # TODO: ここに実装する
+    raise NotImplementedError()
 
 
 @router.get(
@@ -27,9 +26,8 @@ def _generate_sequence(bags: int) -> list[str]:
 def get_tetromino_sequence(
     bags: int = Query(default=1, description="取得する7種セットの数（1〜5）"),
 ):
-    if not (1 <= bags <= 5):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="bagsは1〜5の範囲で指定してください",
-        )
-    return schemas.TetrominoSequenceResponse(sequence=_generate_sequence(bags))
+    """テトリミノの出現順序を返す。
+    詳細設計書 A-03: bagsが1〜5の範囲外の場合は400を返すこと。
+    """
+    # TODO: ここに実装する
+    raise NotImplementedError()
