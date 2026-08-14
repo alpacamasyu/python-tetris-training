@@ -112,32 +112,26 @@ class TetrisGame {
     this._loop = this._loop.bind(this);
   }
 
+  /**
+   * ゲームを初期化して開始する。
+   * - difficultySetting（A-04のレスポンス1件）から初期落下速度・得点倍率を保持する
+   * - 盤面（BOARD_ROWS x BOARD_COLS、すべてnull）・スコア・レベル・消去ライン数を初期化する
+   * - initialQueue（テトリミノ出現順序の配列）をキューとして保持する
+   * - 最初のミノをスポーンし、onStateChangeで初期状態を通知する
+   * - キーボードイベントを登録し、ゲームループ（requestAnimationFrame）を開始する
+   * 詳細設計書 S-03 初期化処理。
+   */
   start(difficultySetting, initialQueue) {
-    this.difficultyName = difficultySetting.name;
-    this.initialFallSpeedMs = difficultySetting.initial_fall_speed_ms;
-    this.scoreMultiplier = difficultySetting.score_multiplier;
-
-    this.board = Array.from({ length: BOARD_ROWS }, () => new Array(BOARD_COLS).fill(null));
-    this.queue = [...initialQueue];
-    this.score = 0;
-    this.level = 1;
-    this.linesCleared = 0;
-    this.fallSpeedMs = this.initialFallSpeedMs;
-    this.dropTimer = 0;
-    this.lastTime = null;
-    this.running = true;
-
-    this._spawnPiece();
-    this._notifyState();
-
-    window.addEventListener("keydown", this._handleKeydown);
-    this.animationFrameId = requestAnimationFrame(this._loop);
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
+  /**
+   * ゲームループを停止し、キーボードイベントリスナーを解除する。
+   */
   stop() {
-    this.running = false;
-    window.removeEventListener("keydown", this._handleKeydown);
-    if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
   enqueue(types) {
@@ -152,153 +146,104 @@ class TetrisGame {
     });
   }
 
+  /**
+   * キューの先頭からテトリミノを1つ取り出し、盤面上部中央（x=3, y=0）に配置する。
+   * キューの残数が7未満になったらonQueueLow()を呼び、ネクストキューの補充を促す。
+   * 配置しようとした位置が既存ブロックと衝突する場合はゲームオーバーと判定し、
+   * ループとイベントリスナーを止めてonGameOver({ score, level, lines })を呼ぶ。
+   * 詳細設計書 S-03 終了処理。
+   */
   _spawnPiece() {
-    const type = this.queue.shift();
-    this.currentType = type;
-    this.currentRotation = 0;
-    this.currentX = 3;
-    this.currentY = 0;
-
-    if (this.queue.length < 7) {
-      this.onQueueLow();
-    }
-
-    if (!this._isValidPosition(this.currentType, this.currentRotation, this.currentX, this.currentY)) {
-      this.running = false;
-      window.removeEventListener("keydown", this._handleKeydown);
-      if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
-      this.onGameOver({ score: this.score, level: this.level, lines: this.linesCleared });
-    }
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
+  /**
+   * 指定した位置・回転状態でテトリミノ(type, rotation)を配置できるかを判定する。
+   * 盤面外（列が0〜BOARD_COLS-1の範囲外、行がBOARD_ROWS以上）に出る場合はfalse。
+   * 盤面より上（行が負）は衝突なしとして扱ってよい。
+   * 既に固定されたブロックと重なる場合はfalseを返す。
+   */
   _isValidPosition(type, rotation, posX, posY) {
-    const cells = getShapeCells(type, rotation);
-    for (const cell of cells) {
-      const boardX = posX + cell.x;
-      const boardY = posY + cell.y;
-      if (boardX < 0 || boardX >= BOARD_COLS || boardY >= BOARD_ROWS) return false;
-      if (boardY < 0) continue;
-      if (this.board[boardY][boardX]) return false;
-    }
-    return true;
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
+  /**
+   * キー入力に応じて操作を行う。詳細設計書 S-03 操作仕様。
+   * ArrowLeft/ArrowRight: 左右移動 / ArrowUp: 回転 / ArrowDown: ソフトドロップ
+   * （移動できない場合はその場で固定する）/ Space（" "）: ハードドロップ
+   */
   _handleKeydown(e) {
-    if (!this.running) return;
-    switch (e.key) {
-      case "ArrowLeft":
-        e.preventDefault();
-        this._tryMove(-1, 0);
-        break;
-      case "ArrowRight":
-        e.preventDefault();
-        this._tryMove(1, 0);
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        this._tryRotate();
-        break;
-      case "ArrowDown":
-        e.preventDefault();
-        if (!this._tryMove(0, 1)) {
-          this._lockPiece();
-        } else {
-          this.dropTimer = 0;
-        }
-        break;
-      case " ":
-        e.preventDefault();
-        this._hardDrop();
-        break;
-    }
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
+  /**
+   * 現在のミノを(dx, dy)だけ移動できるか判定し、可能であれば
+   * currentX/currentYを更新してtrueを返す。できない場合は何もせずfalseを返す。
+   */
   _tryMove(dx, dy) {
-    const newX = this.currentX + dx;
-    const newY = this.currentY + dy;
-    if (this._isValidPosition(this.currentType, this.currentRotation, newX, newY)) {
-      this.currentX = newX;
-      this.currentY = newY;
-      return true;
-    }
-    return false;
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
+  /**
+   * 現在のミノを時計回りに1状態(0→R→2→L→0)回転する。
+   * 詳細設計書4章：壁蹴り（ウォールキック）は行わない簡易回転方式。
+   * 回転後の位置が衝突する場合は回転をキャンセルする（回転前の状態を維持する）。
+   */
   _tryRotate() {
-    const newRotation = (this.currentRotation + 1) % 4;
-    // 壁蹴りは行わない簡易回転方式：衝突する場合は回転をキャンセルする
-    if (this._isValidPosition(this.currentType, newRotation, this.currentX, this.currentY)) {
-      this.currentRotation = newRotation;
-    }
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
+  /**
+   * 衝突するまで現在のミノを下に移動させ続けてから固定する。
+   */
   _hardDrop() {
-    while (this._tryMove(0, 1)) {
-      // 衝突するまで下に移動し続ける
-    }
-    this._lockPiece();
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
+  /**
+   * 現在のミノを盤面に固定し（board配列にTETROMINO_COLORSの色を書き込む）、
+   * ライン消去判定（_clearLines）を行った上で、次のミノをスポーンする。
+   */
   _lockPiece() {
-    const cells = getShapeCells(this.currentType, this.currentRotation);
-    for (const cell of cells) {
-      const boardX = this.currentX + cell.x;
-      const boardY = this.currentY + cell.y;
-      if (boardY >= 0) {
-        this.board[boardY][boardX] = TETROMINO_COLORS[this.currentType];
-      }
-    }
-
-    this._clearLines();
-    this.dropTimer = 0;
-
-    if (this.running) {
-      this._spawnPiece();
-      this._notifyState();
-    }
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
+  /**
+   * 揃った行（すべてのセルが埋まっている行）を盤面から取り除き、上に空行を詰める。
+   * 詳細設計書5章 得点計算仕様に従い、消去したライン数に応じて得点を加算する。
+   *   加算得点 = 基本得点（LINE_SCORES） × レベル係数(1 + (level-1)*0.1) × 難易度倍率
+   * 消去ライン数の累計が10の倍数に達するごとにレベルを1上げ、
+   * 落下速度を max(初期落下速度 - (level-1)*50, 100) で再計算する。
+   */
   _clearLines() {
-    const remainingRows = this.board.filter((row) => row.some((cell) => !cell));
-    const clearedCount = BOARD_ROWS - remainingRows.length;
-    if (clearedCount === 0) return;
-
-    const newRows = Array.from({ length: clearedCount }, () => new Array(BOARD_COLS).fill(null));
-    this.board = [...newRows, ...remainingRows];
-
-    const levelFactor = 1 + (this.level - 1) * 0.1;
-    const baseScore = LINE_SCORES[clearedCount] || 0;
-    this.score += Math.round(baseScore * levelFactor * this.scoreMultiplier);
-
-    this.linesCleared += clearedCount;
-    this.level = Math.floor(this.linesCleared / 10) + 1;
-    this.fallSpeedMs = Math.max(this.initialFallSpeedMs - (this.level - 1) * 50, 100);
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
+  /**
+   * requestAnimationFrameで毎フレーム呼ばれるゲームループ。
+   * 前回フレームからの経過時間をdropTimerに積算し、fallSpeedMsを超えたら
+   * 自然落下（下に1マス移動、できなければ固定）を行う。
+   * 最後に描画（_render）を行い、次のフレームを予約する。
+   */
   _loop(now) {
-    if (!this.running) return;
-    if (this.lastTime === null) this.lastTime = now;
-    const delta = now - this.lastTime;
-    this.lastTime = now;
-
-    this.dropTimer += delta;
-    if (this.dropTimer >= this.fallSpeedMs) {
-      this.dropTimer = 0;
-      if (!this._tryMove(0, 1)) {
-        this._lockPiece();
-      }
-    }
-
-    this._render();
-    this.animationFrameId = requestAnimationFrame(this._loop);
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
+  /**
+   * 現在のミノをそのまま落下させた場合に着地するY座標（ゴースト表示用）を返す。
+   */
   _getGhostY() {
-    let ghostY = this.currentY;
-    while (this._isValidPosition(this.currentType, this.currentRotation, this.currentX, ghostY + 1)) {
-      ghostY++;
-    }
-    return ghostY;
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
   _render() {
