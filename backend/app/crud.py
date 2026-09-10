@@ -13,13 +13,31 @@ DIFFICULTY_SEED = [
     {"name": "hard", "initial_fall_speed_ms": 400, "score_multiplier": 2.0},
 ]
 
-
 def seed_difficulty_settings(db: Session) -> None:
-    """difficulty_settings が空の場合のみ、初期データ（easy/normal/hard、DIFFICULTY_SEED）を投入する。
-    詳細設計書 2.4「初期データ（difficulty_settings）」に対応。
-    """
-    # TODO: ここに実装する
-    raise NotImplementedError()
+    """difficulty_settings が空の場合のみ、初期データを投入する。"""
+    if db.query(models.DifficultySetting).count() > 0:
+        return
+
+    db.add(models.DifficultySetting(
+        name="easy",
+        initial_fall_speed_ms=1000,
+        score_multiplier=1.0
+    ))
+
+    db.add(models.DifficultySetting(
+        name="normal",
+        initial_fall_speed_ms=700,
+        score_multiplier=1.5
+    ))
+
+    db.add(models.DifficultySetting(
+        name="hard",
+        initial_fall_speed_ms=400,
+        score_multiplier=2.0
+    ))
+
+    db.commit()
+
 
 
 # --- users ---
