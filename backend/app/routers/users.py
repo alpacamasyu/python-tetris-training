@@ -9,7 +9,6 @@ from ..database import get_db
 
 router = APIRouter(tags=["users"])
 
-
 @router.post(
     "/api/users",
     response_model=schemas.UserResponse,
@@ -19,8 +18,17 @@ def register_user(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     """ニックネームでユーザーを新規登録する。
     詳細設計書 A-01: 既に同じnicknameが登録済みの場合は409を返すこと。
     """
-    # TODO: ここに実装する
-    raise NotImplementedError()
+    existing_user = crud.get_user_by_nickname(db, user_in.nickname)
+    if existing_user is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="このニックネームは既に登録されています")
+
+    db_user = crud.create_user(db, user_in.nickname)
+
+    return schemas.UserResponse(
+        user_id=db_user.id,
+        nickname=db_user.nickname,
+        created_at=db_user.created_at,
+    )
 
 
 @router.post("/api/login", response_model=schemas.LoginResponse)
@@ -28,8 +36,14 @@ def login(login_in: schemas.LoginRequest, db: Session = Depends(get_db)):
     """既存ユーザーをニックネームで確認する。
     詳細設計書 A-02: 該当ユーザーが存在しない場合は404を返すこと。
     """
-    # TODO: ここに実装する
-    raise NotImplementedError()
+    user = crud.get_user_by_nickname(db, login_in.nickname)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="ユーザーが見つかりません")
+
+    return schemas.LoginResponse(
+        user_id=user.id,
+        nickname=user.nickname,
+    )
 
 
 @router.get(
@@ -44,5 +58,22 @@ def get_history(
     """指定ユーザーのプレイ履歴を、プレイ日時の新しい順に取得する。
     詳細設計書 A-07: user_idに該当するユーザーが存在しない場合は404を返すこと。
     """
-    # TODO: ここに実装する
-    raise NotImplementedError()
+
+    user = crud.get_user(db, user_id=user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    scores = crud.get_user_history(db, user_id=user_id, limit=limit)
+
+    history = []
+    for score in scores:
+        history.append(
+            schemas.HistoryItem(
+                score_id=score.id,
+                score=score.score,
+                level_reached=score.level_reached,
+                lines_cleared=score.lines_cleared,
+                difficulty=score.difficulty,
+                played_at=score.played_at,
+            )
+        )
+    return history

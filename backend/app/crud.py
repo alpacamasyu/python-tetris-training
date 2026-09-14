@@ -48,24 +48,26 @@ def get_user(db: Session, user_id: int) -> Optional[models.User]:
     詳細設計書 A-02/A-05/A-07 のユーザー存在チェックで使用する。
     """
     # TODO: ここに実装する
-    raise NotImplementedError()
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    return db_user
 
 
 def get_user_by_nickname(db: Session, nickname: str) -> Optional[models.User]:
     """nicknameに一致するユーザーを1件取得する。存在しない場合はNoneを返す。
-    詳細設計書 A-01（重複チェック）/ A-02（ログイン）で使用する。
+    詳細設計書 A-01/A-02(ログイン)で使用する。
     """
-    # TODO: ここに実装する
-    raise NotImplementedError()
+    return db.query(models.User).filter(models.User.nickname == nickname).first()
 
 
 def create_user(db: Session, nickname: str) -> models.User:
     """新規ユーザーを1件作成してDBに登録し、作成したUserを返す。
     詳細設計書 A-01 ユーザー登録に対応。
     """
-    # TODO: ここに実装する
-    raise NotImplementedError()
-
+    db_user = models.User(nickname=nickname)
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
 
 # --- difficulty_settings ---
 
@@ -75,7 +77,8 @@ def get_difficulty_settings(db: Session) -> Sequence[models.DifficultySetting]:
     詳細設計書 A-04 難易度設定の取得に対応。
     """
     # TODO: ここに実装する
-    raise NotImplementedError()
+    return db.query(models.DifficultySetting).order_by(models.DifficultySetting.id.asc()).all(
+    )
 
 
 # --- scores ---
@@ -86,7 +89,17 @@ def create_score(db: Session, score_in: schemas.ScoreCreate) -> models.Score:
     詳細設計書 A-05 スコア登録に対応。
     """
     # TODO: ここに実装する
-    raise NotImplementedError()
+    db_score = models.Score(
+        user_id=score_in.user_id,
+        score=score_in.score,
+        level_reached=score_in.level_reached,
+        lines_cleared=score_in.lines_cleared,
+        difficulty=score_in.difficulty,
+    )
+    db.add(db_score)
+    db.commit()
+    db.refresh(db_score)
+    return db_score
 
 
 def get_rankings(
@@ -97,7 +110,12 @@ def get_rankings(
     詳細設計書 A-06 ランキング取得に対応。
     """
     # TODO: ここに実装する
-    raise NotImplementedError()
+    query = db.query(models.Score, models.User).join(models.User)
+    if difficulty is not None:
+        query = query.filter(models.Score.difficulty == difficulty)
+    return query.order_by(models.Score.score.desc(), models.Score.played_at.asc()).limit(limit).all()
+
+    
 
 
 def get_user_history(db: Session, user_id: int, limit: int) -> Sequence[models.Score]:
@@ -105,4 +123,10 @@ def get_user_history(db: Session, user_id: int, limit: int) -> Sequence[models.S
     詳細設計書 A-07 プレイ履歴取得に対応。
     """
     # TODO: ここに実装する
-    raise NotImplementedError()
+    return (
+        db.query(models.Score)
+        .filter(models.Score.user_id == user_id)
+        .order_by(models.Score.played_at.desc())
+        .limit(limit)
+        .all()
+    )
