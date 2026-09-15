@@ -415,6 +415,23 @@ _renderBoard() {
     }
   }
 
+  // 1.5 ゴーストの描画
+  const ghostY = this._getGhostY();
+  const ghostCells = getShapeCells(this.currentType, this.currentRotation);
+  ctx.globalAlpha = 0.3; // ゴーストの透明度を設定
+  for (const cell of ghostCells) {
+    this._drawCell(
+      ctx,
+      this.currentX + cell.x,
+      ghostY + cell.y,
+      TETROMINO_COLORS[this.currentType],
+      CELL_SIZE
+    );
+  }
+  ctx.globalAlpha = 1.0; // 元の透明度に戻す
+  
+
+
    // 2. 現在操作中のミノを描画
   const cells = getShapeCells(this.currentType, this.currentRotation);
   for (const cell of cells) {
