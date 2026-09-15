@@ -127,7 +127,8 @@ class TetrisGame {
     this.lastTime = null;
     this.running = true;
 
-    this._spawnPiece();
+    // 盤面がまだ空の最初の1個は、衝突判定・ゲームオーバー判定を経由せずに出現させる。
+    this._spawnPiece(true);
     this._notifyState();
 
     window.addEventListener("keydown", this._handleKeydown);
@@ -152,7 +153,7 @@ class TetrisGame {
     });
   }
 
-  _spawnPiece() {
+  _spawnPiece(isInitial = false) {
     const type = this.queue.shift();
     this.currentType = type;
     this.currentRotation = 0;
@@ -163,6 +164,13 @@ class TetrisGame {
       this.onQueueLow();
     }
 
+    if (!isInitial) {
+      this._checkGameOver();
+    }
+  }
+
+  // STEP 3-9：出現位置が既存ブロックと衝突していればゲームオーバーとして扱う。
+  _checkGameOver() {
     if (!this._isValidPosition(this.currentType, this.currentRotation, this.currentX, this.currentY)) {
       this.running = false;
       window.removeEventListener("keydown", this._handleKeydown);
@@ -171,6 +179,7 @@ class TetrisGame {
     }
   }
 
+  // STEP 3-4：衝突判定
   _isValidPosition(type, rotation, posX, posY) {
     const cells = getShapeCells(type, rotation);
     for (const cell of cells) {
@@ -213,6 +222,7 @@ class TetrisGame {
     }
   }
 
+  // STEP 3-2：左右移動（上下移動にも共用）
   _tryMove(dx, dy) {
     const newX = this.currentX + dx;
     const newY = this.currentY + dy;
@@ -224,6 +234,7 @@ class TetrisGame {
     return false;
   }
 
+  // STEP 3-3：回転
   _tryRotate() {
     const newRotation = (this.currentRotation + 1) % 4;
     // 壁蹴りは行わない簡易回転方式：衝突する場合は回転をキャンセルする
@@ -232,6 +243,7 @@ class TetrisGame {
     }
   }
 
+  // STEP 3-5：ハードドロップ
   _hardDrop() {
     while (this._tryMove(0, 1)) {
       // 衝突するまで下に移動し続ける
@@ -239,6 +251,14 @@ class TetrisGame {
     this._lockPiece();
   }
 
+  // STEP 3-5：自然落下（一定間隔ごとに_loopから呼ばれる）
+  _naturalFall() {
+    if (!this._tryMove(0, 1)) {
+      this._lockPiece();
+    }
+  }
+
+  // STEP 3-6：固定
   _lockPiece() {
     const cells = getShapeCells(this.currentType, this.currentRotation);
     for (const cell of cells) {
@@ -249,7 +269,8 @@ class TetrisGame {
       }
     }
 
-    this._clearLines();
+    const clearedCount = this._clearLines();
+    this._updateScore(clearedCount);
     this.dropTimer = 0;
 
     if (this.running) {
@@ -258,13 +279,20 @@ class TetrisGame {
     }
   }
 
+  // STEP 3-7：ライン消去（消去した行数を返すだけで、得点計算は行わない）
   _clearLines() {
     const remainingRows = this.board.filter((row) => row.some((cell) => !cell));
     const clearedCount = BOARD_ROWS - remainingRows.length;
-    if (clearedCount === 0) return;
+    if (clearedCount === 0) return 0;
 
     const newRows = Array.from({ length: clearedCount }, () => new Array(BOARD_COLS).fill(null));
     this.board = [...newRows, ...remainingRows];
+    return clearedCount;
+  }
+
+  // STEP 3-8：得点計算・レベルアップ
+  _updateScore(clearedCount) {
+    if (clearedCount === 0) return;
 
     const levelFactor = 1 + (this.level - 1) * 0.1;
     const baseScore = LINE_SCORES[clearedCount] || 0;
@@ -284,15 +312,14 @@ class TetrisGame {
     this.dropTimer += delta;
     if (this.dropTimer >= this.fallSpeedMs) {
       this.dropTimer = 0;
-      if (!this._tryMove(0, 1)) {
-        this._lockPiece();
-      }
+      this._naturalFall();
     }
 
     this._render();
     this.animationFrameId = requestAnimationFrame(this._loop);
   }
 
+  // STEP 3-10：ゴースト表示位置の算出
   _getGhostY() {
     let ghostY = this.currentY;
     while (this._isValidPosition(this.currentType, this.currentRotation, this.currentX, ghostY + 1)) {
@@ -306,6 +333,7 @@ class TetrisGame {
     this._renderNext();
   }
 
+  // STEP 3-1：盤面・現在のミノ・ゴーストの描画
   _renderBoard() {
     const ctx = this.boardCtx;
     ctx.clearRect(0, 0, BOARD_COLS * CELL_SIZE, BOARD_ROWS * CELL_SIZE);
@@ -350,6 +378,7 @@ class TetrisGame {
     }
   }
 
+  // STEP 3-1：ネクスト（次のミノ）プレビューの描画
   _renderNext() {
     const ctx = this.nextCtx;
     const width = ctx.canvas.width;
@@ -374,6 +403,7 @@ class TetrisGame {
     }
   }
 
+  // STEP 3-1：1マス分の矩形を描画する共通ヘルパー
   _drawCell(ctx, x, y, color, size) {
     ctx.fillStyle = color;
     ctx.fillRect(x * size, y * size, size - 1, size - 1);
