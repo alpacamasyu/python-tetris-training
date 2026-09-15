@@ -178,9 +178,17 @@ class TetrisGame {
    * 詳細設計書 S-04（リザルト画面）への切り替えはonGameOverの呼び出し先（screens.js）が行います。
    */
   _checkGameOver() {
-    // TODO: ここに実装する
-    throw new Error("Not implemented");
+    if (!this._isValidPosition(this.currentType, this.currentRotation, this.currentX, this.currentY)) {
+      this.stop();
+      this.onGameOver({
+        score: this.score,
+        level: this.level,
+        lines: this.linesCleared,
+      });
+    }
   }
+
+  
 
   /**
    * 指定した位置・回転状態でテトリミノ(type, rotation)を配置できるかを判定する。
@@ -189,8 +197,16 @@ class TetrisGame {
    * 既に固定されたブロックと重なる場合はfalseを返す。
    */
   _isValidPosition(type, rotation, posX, posY) {
-    // TODO: ここに実装する
-    throw new Error("Not implemented");
+    if (!TETROMINO_SHAPES[type]) throw new Error(`Invalid tetromino type: ${type}`);
+    const cells = getShapeCells(type, rotation);
+    for (const cell of cells) {
+      const x = posX + cell.x;
+      const y = posY + cell.y;
+      if (x < 0 || x >= BOARD_COLS) return false;
+      if (y >= BOARD_ROWS) return false;
+      if (y >= 0 && this.board[y][x]) return false;
+    }
+    return true;
   }
 
   _handleKeydown(e) {
@@ -228,9 +244,16 @@ class TetrisGame {
    * currentX/currentYを更新してtrueを返す。できない場合は何もせずfalseを返す。
    */
   _tryMove(dx, dy) {
-    // TODO: ここに実装する
-    throw new Error("Not implemented");
+    const newX = this.currentX + dx;
+    const newY = this.currentY + dy;
+    if (this._isValidPosition(this.currentType, this.currentRotation, newX, newY)) {
+      this.currentX = newX;
+      this.currentY = newY;
+      return true;
+    }
+    return false;
   }
+
 
   /**
    * 現在のミノを時計回りに1状態(0→R→2→L→0)回転する。
@@ -238,17 +261,22 @@ class TetrisGame {
    * 回転後の位置が衝突する場合は回転をキャンセルする（回転前の状態を維持する）。
    */
   _tryRotate() {
-    // TODO: ここに実装する
-    throw new Error("Not implemented");
+    const newRotation = (this.currentRotation + 1) % 4;
+    if (this._isValidPosition(this.currentType, newRotation, this.currentX, this.currentY)) {
+      this.currentRotation = newRotation;
+    } 
   }
 
   /**
    * 衝突するまで現在のミノを下に移動させ続けてから固定する。
-   */
+  */
+
   _hardDrop() {
-    // TODO: ここに実装する
-    throw new Error("Not implemented");
+    while (this._tryMove(0, 1)) {}
+    this._lockPiece();
   }
+
+  
 
   /**
    * 一定間隔（fallSpeedMs）ごとに_loopから呼ばれる自然落下処理。
@@ -258,9 +286,11 @@ class TetrisGame {
    * 間隔の管理自体は_loop側で行うので、ここでは「1回分の落下」だけを考えればよい。
    */
   _naturalFall() {
-    // TODO: ここに実装する
-    throw new Error("Not implemented");
+    if (!this._tryMove(0, 1)) {
+      this._lockPiece();
+    }
   }
+
 
   /**
    * 現在のミノを盤面に固定する（「これ以上下に移動できない」と判定されたときの処理）。
@@ -270,11 +300,21 @@ class TetrisGame {
    * 固定が終わったら次のミノをスポーンする（_spawnPiece）。
    * 出現位置にすでにブロックがある場合はゲームオーバーになる（STEP 3-9）。
    */
-  _lockPiece() {
-    // TODO: ここに実装する
-    throw new Error("Not implemented");
+  _lockPiece () {
+    const cells = getShapeCells(this.currentType, this.currentRotation);
+    for (const cell of cells) {
+      const x = this.currentX + cell.x;
+      const y = this.currentY + cell.y;
+      if (y >= 0 && y < BOARD_ROWS && x >= 0 && x < BOARD_COLS) {
+        this.board[y][x] = TETROMINO_COLORS[this.currentType];
+      }
+    }
+    const clearedCount = this._clearLines();
+    this._updateScore(clearedCount);
+    this._spawnPiece();
+    this._notifyState();
   }
-
+    
   /**
    * 揃った行（すべてのセルが埋まっている行）を盤面から取り除き、
    * それより上にあった行を1つずつ下にずらす（空いた上部には空行を詰める）。
@@ -282,8 +322,16 @@ class TetrisGame {
    * 得点計算・レベルアップはSTEP 3-8の_updateScoreで行う。
    */
   _clearLines() {
-    // TODO: ここに実装する
-    throw new Error("Not implemented");
+    let count = 0;
+    for (let y = BOARD_ROWS - 1; y >= 0; y--) {
+      if (this.board[y].every(cell => cell !== null)) {
+        this.board.splice(y, 1);
+        count++;
+        this.board.unshift(new Array(BOARD_COLS).fill(null));
+        y++; // 上の行も再チェックするためにyを戻す
+      }
+    } 
+    return count;
   }
 
   /**
@@ -295,8 +343,17 @@ class TetrisGame {
    * 落下速度を詳細設計書5.3の式 max(初期落下速度 - (level-1)*50, 100) で再計算する。
    */
   _updateScore(clearedCount) {
-    // TODO: ここに実装する
-    throw new Error("Not implemented");
+    if (clearedCount === 0) return;
+    const baseScore = LINE_SCORES[clearedCount] || 0;
+    const levelMultiplier = 1 + (this.level - 1) * 0.1;
+    const addedScore = Math.floor(baseScore * levelMultiplier * this.scoreMultiplier);
+    this.score += addedScore;
+    this.linesCleared += clearedCount;
+    const newLevel = Math.floor(this.linesCleared / 10) + 1;
+    if (newLevel > this.level) {
+      this.level = newLevel;
+      this.fallSpeedMs = Math.max(this.initialFallSpeedMs - (this.level - 1) * 50, 100);
+    }
   }
 
   _loop(now) {
@@ -323,9 +380,13 @@ class TetrisGame {
    * （ctx.globalAlphaなど）でゴーストを描画する処理も追加すること。
    */
   _getGhostY() {
-    // TODO: ここに実装する
-    throw new Error("Not implemented");
+    let ghostY = this.currentY;
+    while (this._isValidPosition(this.currentType, this.currentRotation, this.currentX, ghostY + 1)) {
+      ghostY++;
+    }
+    return ghostY;
   }
+
 
   _render() {
     this._renderBoard();
@@ -374,9 +435,20 @@ _renderBoard() {
    * getShapeCells(type, 0)の座標をNEXT_CELL_SIZE単位で並べて描画する。
    */
   _renderNext() {
-    // TODO: ここに実装する
-    throw new Error("Not implemented");
+    const ctx = this.nextCtx;
+    ctx.clearRect(0, 0, NEXT_CELL_SIZE * 4, NEXT_CELL_SIZE * NEXT_PREVIEW_COUNT);
+
+    for (let i = 0; i < NEXT_PREVIEW_COUNT; i++) {
+      const type = this.queue[i];
+      const cells = getShapeCells(type, 0);
+      for (const cell of cells) {
+        this._drawCell(ctx, cell.x, i * 4 + cell.y, TETROMINO_COLORS[type], NEXT_CELL_SIZE);
+      }
+    }
   }
+
+
+
 
   /**
    * 1マス分の矩形をCanvasに描画する共通ヘルパー。
