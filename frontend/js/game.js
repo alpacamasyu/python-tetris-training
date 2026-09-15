@@ -169,27 +169,28 @@ class TetrisGame {
     }
   }
 
-  // STEP 3-9：出現位置が既存ブロックと衝突していればゲームオーバーとして扱う。
+  /**
+   * _spawnPieceが新しいミノを配置した直後に呼ばれるゲームオーバー判定。
+   * 出現位置（this.currentType/currentRotation/currentX/currentY）にSTEP 3-4の
+   * 衝突判定関数（_isValidPosition）がそのまま使えないか考えてみましょう。
+   * 衝突していれば、ループとキーボードイベントリスナーを止め、
+   * onGameOver({ score, level, lines })を呼び出してゲームオーバーとします。
+   * 詳細設計書 S-04（リザルト画面）への切り替えはonGameOverの呼び出し先（screens.js）が行います。
+   */
   _checkGameOver() {
-    if (!this._isValidPosition(this.currentType, this.currentRotation, this.currentX, this.currentY)) {
-      this.running = false;
-      window.removeEventListener("keydown", this._handleKeydown);
-      if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
-      this.onGameOver({ score: this.score, level: this.level, lines: this.linesCleared });
-    }
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
-  // STEP 3-4：衝突判定
+  /**
+   * 指定した位置・回転状態でテトリミノ(type, rotation)を配置できるかを判定する。
+   * 盤面外（列が0〜BOARD_COLS-1の範囲外、行がBOARD_ROWS以上）に出る場合はfalse。
+   * 盤面より上（行が負）は衝突なしとして扱ってよい。
+   * 既に固定されたブロックと重なる場合はfalseを返す。
+   */
   _isValidPosition(type, rotation, posX, posY) {
-    const cells = getShapeCells(type, rotation);
-    for (const cell of cells) {
-      const boardX = posX + cell.x;
-      const boardY = posY + cell.y;
-      if (boardX < 0 || boardX >= BOARD_COLS || boardY >= BOARD_ROWS) return false;
-      if (boardY < 0) continue;
-      if (this.board[boardY][boardX]) return false;
-    }
-    return true;
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
   _handleKeydown(e) {
@@ -222,85 +223,80 @@ class TetrisGame {
     }
   }
 
-  // STEP 3-2：左右移動（上下移動にも共用）
+  /**
+   * 現在のミノを(dx, dy)だけ移動できるか判定し、可能であれば
+   * currentX/currentYを更新してtrueを返す。できない場合は何もせずfalseを返す。
+   */
   _tryMove(dx, dy) {
-    const newX = this.currentX + dx;
-    const newY = this.currentY + dy;
-    if (this._isValidPosition(this.currentType, this.currentRotation, newX, newY)) {
-      this.currentX = newX;
-      this.currentY = newY;
-      return true;
-    }
-    return false;
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
-  // STEP 3-3：回転
+  /**
+   * 現在のミノを時計回りに1状態(0→R→2→L→0)回転する。
+   * 詳細設計書4章：壁蹴り（ウォールキック）は行わない簡易回転方式。
+   * 回転後の位置が衝突する場合は回転をキャンセルする（回転前の状態を維持する）。
+   */
   _tryRotate() {
-    const newRotation = (this.currentRotation + 1) % 4;
-    // 壁蹴りは行わない簡易回転方式：衝突する場合は回転をキャンセルする
-    if (this._isValidPosition(this.currentType, newRotation, this.currentX, this.currentY)) {
-      this.currentRotation = newRotation;
-    }
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
-  // STEP 3-5：ハードドロップ
+  /**
+   * 衝突するまで現在のミノを下に移動させ続けてから固定する。
+   */
   _hardDrop() {
-    while (this._tryMove(0, 1)) {
-      // 衝突するまで下に移動し続ける
-    }
-    this._lockPiece();
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
-  // STEP 3-5：自然落下（一定間隔ごとに_loopから呼ばれる）
+  /**
+   * 一定間隔（fallSpeedMs）ごとに_loopから呼ばれる自然落下処理。
+   * 現在のミノを1マス下に移動できるか試し（_tryMove(0, 1)）、
+   * 移動できなければその場で固定する（_lockPiece）。
+   * 落下間隔そのものはレベルによって変わる（詳細設計書5.3）が、
+   * 間隔の管理自体は_loop側で行うので、ここでは「1回分の落下」だけを考えればよい。
+   */
   _naturalFall() {
-    if (!this._tryMove(0, 1)) {
-      this._lockPiece();
-    }
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
-  // STEP 3-6：固定
+  /**
+   * 現在のミノを盤面に固定する（「これ以上下に移動できない」と判定されたときの処理）。
+   * 今操作中のテトリミノが占めている4マスの色（TETROMINO_COLORS）を、
+   * board配列に書き込む。そのうえで、ライン消去処理（_clearLines）を行い、
+   * その戻り値（消去したライン数）を得点計算処理（_updateScore）に渡す。
+   * 固定が終わったら次のミノをスポーンする（_spawnPiece）。
+   * 出現位置にすでにブロックがある場合はゲームオーバーになる（STEP 3-9）。
+   */
   _lockPiece() {
-    const cells = getShapeCells(this.currentType, this.currentRotation);
-    for (const cell of cells) {
-      const boardX = this.currentX + cell.x;
-      const boardY = this.currentY + cell.y;
-      if (boardY >= 0) {
-        this.board[boardY][boardX] = TETROMINO_COLORS[this.currentType];
-      }
-    }
-
-    const clearedCount = this._clearLines();
-    this._updateScore(clearedCount);
-    this.dropTimer = 0;
-
-    if (this.running) {
-      this._spawnPiece();
-      this._notifyState();
-    }
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
-  // STEP 3-7：ライン消去（消去した行数を返すだけで、得点計算は行わない）
+  /**
+   * 揃った行（すべてのセルが埋まっている行）を盤面から取り除き、
+   * それより上にあった行を1つずつ下にずらす（空いた上部には空行を詰める）。
+   * 得点計算はここでは行わず、消去したライン数（0以上の整数）を返すだけにする。
+   * 得点計算・レベルアップはSTEP 3-8の_updateScoreで行う。
+   */
   _clearLines() {
-    const remainingRows = this.board.filter((row) => row.some((cell) => !cell));
-    const clearedCount = BOARD_ROWS - remainingRows.length;
-    if (clearedCount === 0) return 0;
-
-    const newRows = Array.from({ length: clearedCount }, () => new Array(BOARD_COLS).fill(null));
-    this.board = [...newRows, ...remainingRows];
-    return clearedCount;
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
-  // STEP 3-8：得点計算・レベルアップ
+  /**
+   * _clearLinesが返した消去ライン数（clearedCount）を受け取り、得点を加算する。
+   * clearedCountが0の場合は何もしない。
+   * 詳細設計書「5.2 最終加算得点の計算式」：
+   *   加算得点 = 基本得点（LINE_SCORES） × レベル係数(1 + (level-1)*0.1) × 難易度倍率
+   * また、消去ライン数の累計（linesCleared）が10の倍数に達するごとにレベルを1上げ、
+   * 落下速度を詳細設計書5.3の式 max(初期落下速度 - (level-1)*50, 100) で再計算する。
+   */
   _updateScore(clearedCount) {
-    if (clearedCount === 0) return;
-
-    const levelFactor = 1 + (this.level - 1) * 0.1;
-    const baseScore = LINE_SCORES[clearedCount] || 0;
-    this.score += Math.round(baseScore * levelFactor * this.scoreMultiplier);
-
-    this.linesCleared += clearedCount;
-    this.level = Math.floor(this.linesCleared / 10) + 1;
-    this.fallSpeedMs = Math.max(this.initialFallSpeedMs - (this.level - 1) * 50, 100);
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
   _loop(now) {
@@ -319,13 +315,16 @@ class TetrisGame {
     this.animationFrameId = requestAnimationFrame(this._loop);
   }
 
-  // STEP 3-10：ゴースト表示位置の算出
+  /**
+   * 現在のミノをそのまま落下させた場合に着地するY座標を返す（ゴースト表示用）。
+   * 現在の位置から1マスずつ下に動かしながら、STEP 3-4の衝突判定（_isValidPosition）で
+   * 「まだ置けるか」を繰り返し確認し、衝突する1つ手前の位置を返す。
+   * 実装したら、_renderBoardの中でこの値を使い、通常のミノとは異なる薄い色
+   * （ctx.globalAlphaなど）でゴーストを描画する処理も追加すること。
+   */
   _getGhostY() {
-    let ghostY = this.currentY;
-    while (this._isValidPosition(this.currentType, this.currentRotation, this.currentX, ghostY + 1)) {
-      ghostY++;
-    }
-    return ghostY;
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
   _render() {
@@ -333,79 +332,37 @@ class TetrisGame {
     this._renderNext();
   }
 
-  // STEP 3-1：盤面・現在のミノ・ゴーストの描画
+  /**
+   * 盤面（固定済みブロック）と、現在操作中のテトリミノを描画する。
+   * 1. this.boardCtx.clearRectでキャンバス全体をクリアする
+   * 2. this.boardを2重ループし、埋まっているマス（board[y][x]に色が入っているマス）を
+   *    _drawCellで描画する
+   * 3. 現在操作中のミノ（getShapeCells(this.currentType, this.currentRotation)）を、
+   *    this.currentX/this.currentYを基準にTETROMINO_COLORSの色で描画する
+   * ゴースト（STEP 3-10）やグリッド線の描画は、この関数の中に追加していけばよい。
+   */
   _renderBoard() {
-    const ctx = this.boardCtx;
-    ctx.clearRect(0, 0, BOARD_COLS * CELL_SIZE, BOARD_ROWS * CELL_SIZE);
-
-    // 盤面に固定済みのブロックを描画
-    for (let y = 0; y < BOARD_ROWS; y++) {
-      for (let x = 0; x < BOARD_COLS; x++) {
-        if (this.board[y][x]) {
-          this._drawCell(ctx, x, y, this.board[y][x], CELL_SIZE);
-        }
-      }
-    }
-
-    // ゴースト（落下予定位置）を描画
-    const ghostY = this._getGhostY();
-    const ghostCells = getShapeCells(this.currentType, this.currentRotation);
-    ctx.globalAlpha = 0.25;
-    for (const cell of ghostCells) {
-      this._drawCell(ctx, this.currentX + cell.x, ghostY + cell.y, TETROMINO_COLORS[this.currentType], CELL_SIZE);
-    }
-    ctx.globalAlpha = 1;
-
-    // 現在操作中のミノを描画
-    const currentCells = getShapeCells(this.currentType, this.currentRotation);
-    for (const cell of currentCells) {
-      this._drawCell(ctx, this.currentX + cell.x, this.currentY + cell.y, TETROMINO_COLORS[this.currentType], CELL_SIZE);
-    }
-
-    // グリッド線
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
-    for (let x = 0; x <= BOARD_COLS; x++) {
-      ctx.beginPath();
-      ctx.moveTo(x * CELL_SIZE, 0);
-      ctx.lineTo(x * CELL_SIZE, BOARD_ROWS * CELL_SIZE);
-      ctx.stroke();
-    }
-    for (let y = 0; y <= BOARD_ROWS; y++) {
-      ctx.beginPath();
-      ctx.moveTo(0, y * CELL_SIZE);
-      ctx.lineTo(BOARD_COLS * CELL_SIZE, y * CELL_SIZE);
-      ctx.stroke();
-    }
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
-  // STEP 3-1：ネクスト（次のミノ）プレビューの描画
+  /**
+   * ネクスト（次に出現する）テトリミノのプレビューをnextCanvas（this.nextCtx）に描画する。
+   * this.queueの先頭からNEXT_PREVIEW_COUNT個を取り出し、
+   * getShapeCells(type, 0)の座標をNEXT_CELL_SIZE単位で並べて描画する。
+   */
   _renderNext() {
-    const ctx = this.nextCtx;
-    const width = ctx.canvas.width;
-    const slotHeight = ctx.canvas.height / NEXT_PREVIEW_COUNT;
-    ctx.clearRect(0, 0, width, ctx.canvas.height);
-
-    for (let i = 0; i < NEXT_PREVIEW_COUNT; i++) {
-      const type = this.queue[i];
-      if (!type) continue;
-      const cells = getShapeCells(type, 0);
-      const offsetY = i * slotHeight + (slotHeight - 4 * NEXT_CELL_SIZE) / 2;
-      const offsetX = (width - 4 * NEXT_CELL_SIZE) / 2;
-      for (const cell of cells) {
-        ctx.fillStyle = TETROMINO_COLORS[type];
-        ctx.fillRect(
-          offsetX + cell.x * NEXT_CELL_SIZE,
-          offsetY + cell.y * NEXT_CELL_SIZE,
-          NEXT_CELL_SIZE - 1,
-          NEXT_CELL_SIZE - 1
-        );
-      }
-    }
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 
-  // STEP 3-1：1マス分の矩形を描画する共通ヘルパー
+  /**
+   * 1マス分の矩形をCanvasに描画する共通ヘルパー。
+   * 列番号x・行番号yに対して、(x*size, y*size)を左上として、
+   * 幅・高さ(size-1)の矩形をcolorで塗りつぶす（マス間に1pxの隙間を作るため-1している）。
+   */
   _drawCell(ctx, x, y, color, size) {
-    ctx.fillStyle = color;
-    ctx.fillRect(x * size, y * size, size - 1, size - 1);
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   }
 }

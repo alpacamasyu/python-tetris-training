@@ -2,81 +2,79 @@ const API_BASE_URL = "http://localhost:8000";
 
 /**
  * バックエンドAPIを呼び出す共通関数。
- * エラー時は { status, detail } を持つErrorをthrowする。
+ * fetch(`${API_BASE_URL}${path}`, options) でリクエストを送り、JSONレスポンスを返す。
+ * レスポンスが !response.ok の場合は、レスポンスボディの { "detail": "..." } を
+ * メッセージとしたErrorをthrowすること（Errorオブジェクトにstatusプロパティを
+ * 持たせておくと、呼び出し側で404/409等の分岐がしやすい）。
+ * ネットワークエラー（fetch自体が失敗した場合）もErrorをthrowすること。
  */
 async function apiRequest(path, options = {}) {
-  let response;
-  try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
-      headers: { "Content-Type": "application/json" },
-      ...options,
-    });
-  } catch (networkError) {
-    const error = new Error("サーバーに接続できませんでした");
-    error.status = 0;
-    throw error;
-  }
-
-  if (!response.ok) {
-    let detail = `エラーが発生しました（status: ${response.status}）`;
-    try {
-      const body = await response.json();
-      if (body && body.detail) detail = body.detail;
-    } catch (_) {
-      // レスポンスボディがJSONでない場合はデフォルトメッセージを使う
-    }
-    const error = new Error(detail);
-    error.status = response.status;
-    throw error;
-  }
-
-  if (response.status === 204) return null;
-  return response.json();
+  // TODO: ここに実装する
+  throw new Error("Not implemented");
 }
 
 const api = {
+  /**
+   * A-02 ログイン（POST /api/login）
+   * 詳細設計書1章 A-02。該当ユーザーが存在しない場合は404エラーになる。
+   */
   login(nickname) {
-    return apiRequest("/api/login", {
-      method: "POST",
-      body: JSON.stringify({ nickname }),
-    });
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   },
 
+  /**
+   * A-01 ユーザー登録（POST /api/users）
+   * 詳細設計書1章 A-01。既に同じnicknameが登録済みの場合は409エラーになる。
+   */
   registerUser(nickname) {
-    return apiRequest("/api/users", {
-      method: "POST",
-      body: JSON.stringify({ nickname }),
-    });
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   },
 
+  /**
+   * A-03 テトリミノ出現順序の取得（GET /api/tetromino-sequence?bags=）
+   * 詳細設計書1章 A-03。戻り値は { sequence: [...] } 形式。
+   */
   getTetrominoSequence(bags = 1) {
-    return apiRequest(`/api/tetromino-sequence?bags=${bags}`);
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   },
 
+  /**
+   * A-04 難易度設定の取得（GET /api/difficulty-settings）
+   * 詳細設計書1章 A-04。
+   */
   getDifficultySettings() {
-    return apiRequest("/api/difficulty-settings");
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   },
 
+  /**
+   * A-05 スコア登録（POST /api/scores）
+   * 詳細設計書1章 A-05。リクエストボディはuser_id/score/level_reached/
+   * lines_cleared/difficultyのスネークケースで送ること。
+   */
   registerScore({ userId, score, levelReached, linesCleared, difficulty }) {
-    return apiRequest("/api/scores", {
-      method: "POST",
-      body: JSON.stringify({
-        user_id: userId,
-        score,
-        level_reached: levelReached,
-        lines_cleared: linesCleared,
-        difficulty,
-      }),
-    });
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   },
 
+  /**
+   * A-06 ランキング取得（GET /api/rankings?limit=&difficulty=）
+   * 詳細設計書1章 A-06。difficultyが空文字の場合はクエリに含めない。
+   */
   getRankings(limit = 10, difficulty = "") {
-    const params = new URLSearchParams({ limit });
-    if (difficulty) params.set("difficulty", difficulty);
-    return apiRequest(`/api/rankings?${params.toString()}`);
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   },
 
+  /**
+   * A-07 プレイ履歴取得（GET /api/users/{user_id}/history?limit=）
+   * 詳細設計書1章 A-07。
+   */
   getHistory(userId, limit = 20) {
-    return apiRequest(`/api/users/${userId}/history?limit=${limit}`);
+    // TODO: ここに実装する
+    throw new Error("Not implemented");
   },
 };
