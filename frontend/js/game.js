@@ -341,10 +341,32 @@ class TetrisGame {
    *    this.currentX/this.currentYを基準にTETROMINO_COLORSの色で描画する
    * ゴースト（STEP 3-10）やグリッド線の描画は、この関数の中に追加していけばよい。
    */
-  _renderBoard() {
-    // TODO: ここに実装する
-    throw new Error("Not implemented");
+_renderBoard() {
+  const ctx = this.boardCtx;
+  ctx.clearRect(0, 0, BOARD_COLS * CELL_SIZE, BOARD_ROWS * CELL_SIZE);
+
+  // 1. 盤面に固定済みのブロックを描画
+  for (let y = 0; y < BOARD_ROWS; y++) {
+    for (let x = 0; x < BOARD_COLS; x++) {
+      if (this.board[y][x]) {
+        this._drawCell(ctx, x, y, this.board[y][x], CELL_SIZE);
+      }
+    }
   }
+
+   // 2. 現在操作中のミノを描画
+  const cells = getShapeCells(this.currentType, this.currentRotation);
+  for (const cell of cells) {
+    this._drawCell(
+      ctx,
+      this.currentX + cell.x,
+      this.currentY + cell.y,
+      TETROMINO_COLORS[this.currentType],
+      CELL_SIZE
+    );
+  }
+}
+
 
   /**
    * ネクスト（次に出現する）テトリミノのプレビューをnextCanvas（this.nextCtx）に描画する。
@@ -362,7 +384,8 @@ class TetrisGame {
    * 幅・高さ(size-1)の矩形をcolorで塗りつぶす（マス間に1pxの隙間を作るため-1している）。
    */
   _drawCell(ctx, x, y, color, size) {
-    // TODO: ここに実装する
-    throw new Error("Not implemented");
+    ctx.fillStyle = color;
+    ctx.fillRect(x * size, y * size, size - 1, size - 1);
   }
 }
+

@@ -9,9 +9,23 @@ const API_BASE_URL = "http://localhost:8000";
  * ネットワークエラー（fetch自体が失敗した場合）もErrorをthrowすること。
  */
 async function apiRequest(path, options = {}) {
-  // TODO: ここに実装する
-  throw new Error("Not implemented");
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, options);
+  } catch (e) {
+    throw new Error("サーバーに接続できませんでした");
+  }
+
+  if (!response.ok) {
+    const body = await response.json();
+    const error = new Error(body.detail);
+    error.status = response.status;
+    throw error;
+  }
+
+  return await response.json();
 }
+
 
 const api = {
   /**
@@ -19,8 +33,11 @@ const api = {
    * 詳細設計書1章 A-02。該当ユーザーが存在しない場合は404エラーになる。
    */
   login(nickname) {
-    // TODO: ここに実装する
-    throw new Error("Not implemented");
+      return apiRequest("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nickname })
+    });
   },
 
   /**
@@ -29,7 +46,11 @@ const api = {
    */
   registerUser(nickname) {
     // TODO: ここに実装する
-    throw new Error("Not implemented");
+    return apiRequest("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nickname })
+    });
   },
 
   /**
@@ -37,8 +58,7 @@ const api = {
    * 詳細設計書1章 A-03。戻り値は { sequence: [...] } 形式。
    */
   getTetrominoSequence(bags = 1) {
-    // TODO: ここに実装する
-    throw new Error("Not implemented");
+    return apiRequest(`/api/tetromino-sequence?bags=${bags}`);
   },
 
   /**
@@ -46,8 +66,7 @@ const api = {
    * 詳細設計書1章 A-04。
    */
   getDifficultySettings() {
-    // TODO: ここに実装する
-    throw new Error("Not implemented");
+    return apiRequest("/api/difficulty-settings");
   },
 
   /**
