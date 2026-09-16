@@ -45,7 +45,6 @@ const api = {
    * 詳細設計書1章 A-01。既に同じnicknameが登録済みの場合は409エラーになる。
    */
   registerUser(nickname) {
-    // TODO: ここに実装する
     return apiRequest("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -75,8 +74,17 @@ const api = {
    * lines_cleared/difficultyのスネークケースで送ること。
    */
   registerScore({ userId, score, levelReached, linesCleared, difficulty }) {
-    // TODO: ここに実装する
-    throw new Error("Not implemented");
+    return apiRequest("/api/scores", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: userId,
+        score,
+        level_reached: levelReached,
+        lines_cleared: linesCleared,
+        difficulty
+      })
+    });
   },
 
   /**
@@ -84,8 +92,11 @@ const api = {
    * 詳細設計書1章 A-06。difficultyが空文字の場合はクエリに含めない。
    */
   getRankings(limit = 10, difficulty = "") {
-    // TODO: ここに実装する
-    throw new Error("Not implemented");
+    const query = new URLSearchParams({ limit });
+    if (difficulty) {
+      query.append("difficulty", difficulty);
+    }
+    return apiRequest(`/api/rankings?${query.toString()}`);
   },
 
   /**
@@ -93,7 +104,7 @@ const api = {
    * 詳細設計書1章 A-07。
    */
   getHistory(userId, limit = 20) {
-    // TODO: ここに実装する
-    throw new Error("Not implemented");
+    return apiRequest(`/api/users/${userId}/history?limit=${limit}`);
   },
-};
+}
+
