@@ -6,6 +6,7 @@ const BOARD_ROWS = 20;
 const CELL_SIZE = 28;
 const NEXT_CELL_SIZE = 18;
 const NEXT_PREVIEW_COUNT = 3;
+const CLEAR_ANIM_MS = 300;
 
 const LINE_SCORES = { 1: 100, 2: 300, 3: 500, 4: 800 };
 
@@ -101,12 +102,19 @@ function getShapeCells(type, rotation) {
 }
 
 class TetrisGame {
-  constructor({ boardCanvas, nextCanvas, onStateChange, onGameOver, onQueueLow }) {
+  constructor({ boardCanvas, nextCanvas, holdCanvas, onStateChange, onGameOver, onQueueLow }) {
     this.boardCtx = boardCanvas.getContext("2d");
     this.nextCtx = nextCanvas.getContext("2d");
-    this.onStateChange = onStateChange || (() => {});
-    this.onGameOver = onGameOver || (() => {});
-    this.onQueueLow = onQueueLow || (() => {});
+    this.holdCtx = holdCanvas.getContext("2d");
+    this.onStateChange = onStateChange || (() => { });
+    this.onGameOver = onGameOver || (() => { });
+    this.onQueueLow = onQueueLow || (() => { });
+    this.holdType = null;      // 預かっているミノの種類
+    this.holdUsed = false;     // このミノでホールドを使ったか
+    this.boardCtx = boardCanvas.getContext("2d");
+    this.nextCtx = nextCanvas.getContext("2d");
+    this.clearingLines = [];
+    this.clearTimer = 0;
 
     this._handleKeydown = this._handleKeydown.bind(this);
     this._loop = this._loop.bind(this);
@@ -126,6 +134,7 @@ class TetrisGame {
     this.dropTimer = 0;
     this.lastTime = null;
     this.running = true;
+
 
     // 盤面がまだ空の最初の1個は、衝突判定・ゲームオーバー判定を経由せずに出現させる。
     this._spawnPiece(true);
@@ -188,7 +197,7 @@ class TetrisGame {
     }
   }
 
-  
+
 
   /**
    * 指定した位置・回転状態でテトリミノ(type, rotation)を配置できるかを判定する。
@@ -236,6 +245,11 @@ class TetrisGame {
         e.preventDefault();
         this._hardDrop();
         break;
+      case "c":
+      case "C":
+        e.preventDefault();
+        this._tryHold();
+        break;
     }
   }
 
@@ -255,28 +269,81 @@ class TetrisGame {
   }
 
 
+
+  _tryHold() {
+    if (this.holdUsed) return;              // 1ミノ1回の制限
+
+    const currentType = this.currentType;
+
+    if (this.holdType === null) {
+      this.holdType = currentType;
+      this._spawnPiece();                   // キューから次を出す
+    } else {
+      this._resetPiecePosition(this.holdType);
+      this.holdType = currentType;
+    }
+
+    this.holdUsed = true;
+  }
+
+  _resetPiecePosition(type) {
+    this.currentType = type;
+    this.currentRotation = 0;
+    this.currentX = 3;
+    this.currentY = 0;
+  }
+
   /**
    * 現在のミノを時計回りに1状態(0→R→2→L→0)回転する。
    * 詳細設計書4章：壁蹴り（ウォールキック）は行わない簡易回転方式。
    * 回転後の位置が衝突する場合は回転をキャンセルする（回転前の状態を維持する）。
-   */
+   * 以下壁蹴りしないパターン
+
   _tryRotate() {
     const newRotation = (this.currentRotation + 1) % 4;
     if (this._isValidPosition(this.currentType, newRotation, this.currentX, this.currentY)) {
       this.currentRotation = newRotation;
     } 
   }
+    */
+  /**
+  * 以下壁蹴りするパターン
+  * 
+   */
+  _tryRotate() {
+    const newRotation = (this.currentRotation + 1) % 4;
+
+    const kicks = [
+      { x: 0, y: 0 },
+      { x: -1, y: 0 },
+      { x: 1, y: 0 },
+      { x: 0, y: -1 },
+    ];
+    for (const kick of kicks) {
+      const testX = this.currentX + kick.x;
+      const testY = this.currentY + kick.y;
+      if (this._isValidPosition(this.currentType, newRotation, testX, testY)) {
+        this.currentRotation = newRotation;
+        this.currentX = testX;   // ずらした分も反映する
+        this.currentY = testY;
+        return;
+      }
+    }
+    // ここまで来たら回転しない
+  }
+
+
 
   /**
-   * 衝突するまで現在のミノを下に移動させ続けてから固定する。
-  */
+ * 衝突するまで現在のミノを下に移動させ続けてから固定する。
+*/
 
   _hardDrop() {
-    while (this._tryMove(0, 1)) {}
+    while (this._tryMove(0, 1)) { }
     this._lockPiece();
   }
 
-  
+
 
   /**
    * 一定間隔（fallSpeedMs）ごとに_loopから呼ばれる自然落下処理。
@@ -300,7 +367,7 @@ class TetrisGame {
    * 固定が終わったら次のミノをスポーンする（_spawnPiece）。
    * 出現位置にすでにブロックがある場合はゲームオーバーになる（STEP 3-9）。
    */
-  _lockPiece () {
+  _lockPiece() {
     const cells = getShapeCells(this.currentType, this.currentRotation);
     for (const cell of cells) {
       const x = this.currentX + cell.x;
@@ -309,32 +376,54 @@ class TetrisGame {
         this.board[y][x] = TETROMINO_COLORS[this.currentType];
       }
     }
-    const clearedCount = this._clearLines();
-    this._updateScore(clearedCount);
+    const fullLines = this._findFullLines();
+    if (fullLines.length > 0) {
+      this.clearingLines = fullLines;
+      this.clearTimer = 0;
+      return;                      // ここで終了。続きは _loop が担当
+    }
+
     this._spawnPiece();
     this._notifyState();
+    this.holdUsed = false;
   }
-    
+  _finishClear() {
+    const count = this.clearingLines.length;
+    this._removeLines(this.clearingLines);
+    this.clearingLines = [];
+    this._updateScore(count);
+    this._spawnPiece();
+    this._notifyState();
+    this.holdUsed = false;
+  }
+
+
   /**
    * 揃った行（すべてのセルが埋まっている行）を盤面から取り除き、
    * それより上にあった行を1つずつ下にずらす（空いた上部には空行を詰める）。
    * 得点計算はここでは行わず、消去したライン数（0以上の整数）を返すだけにする。
    * 得点計算・レベルアップはSTEP 3-8の_updateScoreで行う。
    */
-  _clearLines() {
-    let count = 0;
-    for (let y = BOARD_ROWS - 1; y >= 0; y--) {
+
+
+  _findFullLines() {
+    const lines = [];
+    for (let y = 0; y < BOARD_ROWS; y++) {
       if (this.board[y].every(cell => cell !== null)) {
-        this.board.splice(y, 1);
-        count++;
-        this.board.unshift(new Array(BOARD_COLS).fill(null));
-        y++; // 上の行も再チェックするためにyを戻す
+        lines.push(y);
       }
-    } 
-    return count;
+    }
+    return lines;
   }
 
-  /**
+  _removeLines(lines) {
+    // 下の行から消す(先に上を消すと番号がずれるため)
+    for (const y of [...lines].sort((a, b) => b - a)) {
+      this.board.splice(y, 1);
+      this.board.unshift(new Array(BOARD_COLS).fill(null));
+    }
+  }
+  /*
    * _clearLinesが返した消去ライン数（clearedCount）を受け取り、得点を加算する。
    * clearedCountが0の場合は何もしない。
    * 詳細設計書「5.2 最終加算得点の計算式」：
@@ -362,6 +451,17 @@ class TetrisGame {
     const delta = now - this.lastTime;
     this.lastTime = now;
 
+    if (this.clearingLines.length > 0) {
+      this.clearTimer += delta;
+      if (this.clearTimer >= CLEAR_ANIM_MS) {
+        this._finishClear();
+        const CLEAR_ANIM_MS = 300;
+      }
+      this._render();
+      this.animationFrameId = requestAnimationFrame(this._loop);
+      return;
+    }
+
     this.dropTimer += delta;
     if (this.dropTimer >= this.fallSpeedMs) {
       this.dropTimer = 0;
@@ -371,14 +471,13 @@ class TetrisGame {
     this._render();
     this.animationFrameId = requestAnimationFrame(this._loop);
   }
-
-  /**
-   * 現在のミノをそのまま落下させた場合に着地するY座標を返す（ゴースト表示用）。
-   * 現在の位置から1マスずつ下に動かしながら、STEP 3-4の衝突判定（_isValidPosition）で
-   * 「まだ置けるか」を繰り返し確認し、衝突する1つ手前の位置を返す。
-   * 実装したら、_renderBoardの中でこの値を使い、通常のミノとは異なる薄い色
-   * （ctx.globalAlphaなど）でゴーストを描画する処理も追加すること。
-   */
+  /*
+     * 現在のミノをそのまま落下させた場合に着地するY座標を返す（ゴースト表示用）。
+     * 現在の位置から1マスずつ下に動かしながら、STEP 3-4の衝突判定（_isValidPosition）で
+     * 「まだ置けるか」を繰り返し確認し、衝突する1つ手前の位置を返す。
+     * 実装したら、_renderBoardの中でこの値を使い、通常のミノとは異なる薄い色
+     * （ctx.globalAlphaなど）でゴーストを描画する処理も追加すること。
+     */
   _getGhostY() {
     let ghostY = this.currentY;
     while (this._isValidPosition(this.currentType, this.currentRotation, this.currentX, ghostY + 1)) {
@@ -391,6 +490,7 @@ class TetrisGame {
   _render() {
     this._renderBoard();
     this._renderNext();
+    this._renderHold();
   }
 
   /**
@@ -402,48 +502,51 @@ class TetrisGame {
    *    this.currentX/this.currentYを基準にTETROMINO_COLORSの色で描画する
    * ゴースト（STEP 3-10）やグリッド線の描画は、この関数の中に追加していけばよい。
    */
-_renderBoard() {
-  const ctx = this.boardCtx;
-  ctx.clearRect(0, 0, BOARD_COLS * CELL_SIZE, BOARD_ROWS * CELL_SIZE);
+  _renderBoard() {
+    const ctx = this.boardCtx;
+    ctx.clearRect(0, 0, BOARD_COLS * CELL_SIZE, BOARD_ROWS * CELL_SIZE);
 
-  // 1. 盤面に固定済みのブロックを描画
-  for (let y = 0; y < BOARD_ROWS; y++) {
-    for (let x = 0; x < BOARD_COLS; x++) {
-      if (this.board[y][x]) {
-        this._drawCell(ctx, x, y, this.board[y][x], CELL_SIZE);
+    // 1. 盤面に固定済みのブロックを描画
+    // 1. 盤面に固定済みのブロックを描画
+    for (let y = 0; y < BOARD_ROWS; y++) {
+      const isClearing = this.clearingLines.includes(y);
+      for (let x = 0; x < BOARD_COLS; x++) {
+        if (this.board[y][x]) {
+          const color = isClearing ? "#ffffff" : this.board[y][x];
+          this._drawCell(ctx, x, y, color, CELL_SIZE);
+        }
       }
     }
-  }
 
-  // 1.5 ゴーストの描画
-  const ghostY = this._getGhostY();
-  const ghostCells = getShapeCells(this.currentType, this.currentRotation);
-  ctx.globalAlpha = 0.3; // ゴーストの透明度を設定
-  for (const cell of ghostCells) {
-    this._drawCell(
-      ctx,
-      this.currentX + cell.x,
-      ghostY + cell.y,
-      TETROMINO_COLORS[this.currentType],
-      CELL_SIZE
-    );
-  }
-  ctx.globalAlpha = 1.0; // 元の透明度に戻す
-  
+    // 1.5 ゴーストの描画
+    const ghostY = this._getGhostY();
+    const ghostCells = getShapeCells(this.currentType, this.currentRotation);
+    ctx.globalAlpha = 0.3; // ゴーストの透明度を設定
+    for (const cell of ghostCells) {
+      this._drawCell(
+        ctx,
+        this.currentX + cell.x,
+        ghostY + cell.y,
+        TETROMINO_COLORS[this.currentType],
+        CELL_SIZE
+      );
+    }
+    ctx.globalAlpha = 1.0; // 元の透明度に戻す
 
 
-   // 2. 現在操作中のミノを描画
-  const cells = getShapeCells(this.currentType, this.currentRotation);
-  for (const cell of cells) {
-    this._drawCell(
-      ctx,
-      this.currentX + cell.x,
-      this.currentY + cell.y,
-      TETROMINO_COLORS[this.currentType],
-      CELL_SIZE
-    );
+
+    // 2. 現在操作中のミノを描画
+    const cells = getShapeCells(this.currentType, this.currentRotation);
+    for (const cell of cells) {
+      this._drawCell(
+        ctx,
+        this.currentX + cell.x,
+        this.currentY + cell.y,
+        TETROMINO_COLORS[this.currentType],
+        CELL_SIZE
+      );
+    }
   }
-}
 
 
   /**
@@ -461,6 +564,17 @@ _renderBoard() {
       for (const cell of cells) {
         this._drawCell(ctx, cell.x, i * 4 + cell.y, TETROMINO_COLORS[type], NEXT_CELL_SIZE);
       }
+    }
+  }
+  _renderHold() {
+    const ctx = this.holdCtx;
+    ctx.clearRect(0, 0, NEXT_CELL_SIZE * 4, NEXT_CELL_SIZE * 4);
+
+    if (this.holdType === null) return;
+
+    const cells = getShapeCells(this.holdType, 0);
+    for (const cell of cells) {
+      this._drawCell(ctx, cell.x, cell.y, TETROMINO_COLORS[this.holdType], NEXT_CELL_SIZE);
     }
   }
 

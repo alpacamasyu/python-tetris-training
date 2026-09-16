@@ -79,6 +79,8 @@ async function enterMenuScreen() {
   }
   renderDifficultyOptions();
   showScreen("menu");
+  // メニュー表示直後にキーボード操作できるよう、先頭の難易度にフォーカスを当てる
+  document.querySelector('input[name="difficulty"]')?.focus();
 }
 
 function renderDifficultyOptions() {
@@ -103,7 +105,18 @@ function renderDifficultyOptions() {
     wrapper.appendChild(label);
     container.appendChild(wrapper);
   });
+    const first = document.querySelector('input[name="difficulty"]'); 
+      if (first) first.focus();
+  // 難易度選択中にEnterキーでゲーム開始できるようにする
+  // Document全体ではなく、containerに限定し、ゲーム画面移行後に反応しないようにしている。
+      container.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();       //フォーム送信によるリロードを防ぐ
+    handleStartGame();
+  }
+});
 }
+
 
 function getSelectedDifficulty() {
   const checked = document.querySelector('input[name="difficulty"]:checked');
@@ -177,11 +190,14 @@ async function enterGameScreen() {
 
   const boardCanvas = document.getElementById("board-canvas");
   const nextCanvas = document.getElementById("next-canvas");
+  const holdCanvas = document.getElementById("hold-canvas");
+  
 
   if (!state.game) {
     state.game = new TetrisGame({
       boardCanvas,
       nextCanvas,
+      holdCanvas: document.getElementById("hold-canvas"),
       onStateChange: (gameState) => {
         document.getElementById("game-score").textContent = gameState.score;
         document.getElementById("game-level").textContent = gameState.level;
